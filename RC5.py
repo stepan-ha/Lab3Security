@@ -122,6 +122,9 @@ class RC5:
     def rc5_subkeys(self, key, w, rounds):
         init_const = {
             8: (0xB7E151628AED2A6B, 0x9E3779B97F4A7C15),
+            16: (0xB7E1, 0x9E37),
+            32: (0xB7E15163, 0x9E3779B9),
+            64: (0xB7E151628AED2A6B, 0x9E3779B97F4A7C15)
         }
         t = 2 * (rounds + 1)
 

@@ -17,11 +17,11 @@ def get_key_from_password(password, key_length):
         return password_hash + mmd.md5(bytearray(password_hash, "utf8"))
 
 def encrypt_file(input_file, output_file, key):
-    block_size = 8
+    block_size = 64
     with open(input_file, 'rb') as file_in, open(output_file, 'wb') as file_out:
         rc5.encrypt_file(block_size, key, 12, file_in, file_out)
 def decrypt_file(input_file, output_file, key):
-    block_size = 8
+    block_size = 64
     with open(input_file, 'rb') as file_in, open(output_file, 'wb') as file_out:
         rc5.decrypt_file(block_size, key, 12, file_in, file_out)
 
