@@ -1,5 +1,6 @@
 import operator
 from Randomizer import Randomizer
+import random
 
 rnd = Randomizer()
 
@@ -24,58 +25,60 @@ class RC5:
         return block.ljust(len(block) + to_add, to_add.to_bytes(1, byteorder='little'))
 
     def IV(self, w):
-        l = rnd.Generate(w // 4)
+        l = rnd.Generate(random.randint(1, 130))
         l = list(map(lambda x: x % 128, l))
         return bytearray(l)
+
     def decrypt_block(self, w, block, subkeys, rounds):
         byted = w // 4
         mod = 2 ** w
 
-        A = int.from_bytes(block[:byted // 2], byteorder='little')
-        B = int.from_bytes(block[byted // 2:], byteorder='little')
+        A_part = int.from_bytes(block[:byted // 2], byteorder='little')
+        B_part = int.from_bytes(block[byted // 2:], byteorder='little')
 
         for i in range(rounds, 0, -1):
-            B = self.right_shift(B - subkeys[2 * i + 1], A, w) ^ A
-            A = self.right_shift((A - subkeys[2 * i]), B, w) ^ B
+            B_part = self.right_shift(B_part - subkeys[2 * i + 1], A_part, w) ^ A_part
+            A_part = self.right_shift((A_part - subkeys[2 * i]), B_part, w) ^ B_part
 
-        B = (B - subkeys[1]) % mod
-        A = (A - subkeys[0]) % mod
+        B_part = (B_part - subkeys[1]) % mod
+        A_part = (A_part - subkeys[0]) % mod
 
-        res = A.to_bytes(byted // 2, byteorder='little') + B.to_bytes(byted // 2, byteorder='little')
+        res = A_part.to_bytes(byted // 2, byteorder='little') + B_part.to_bytes(byted // 2, byteorder='little')
+
         return res
 
     def encrypt_block(self, w, block, subkeys, rounds):
         byted = w // 4
         mod = 2 ** w
 
-        A = int.from_bytes(block[:byted // 2], byteorder='little')
-        B = int.from_bytes(block[byted // 2:], byteorder='little')
+        A_part = int.from_bytes(block[:byted // 2], byteorder='little')
+        B_part = int.from_bytes(block[byted // 2:], byteorder='little')
 
-        A = (A + subkeys[0]) % mod
-        B = (B + subkeys[1]) % mod
+        A_part = (A_part + subkeys[0]) % mod
+        B_part = (B_part + subkeys[1]) % mod
 
         for i in range(1, rounds + 1):
-            A = (self.left_shift((A ^ B), B, w) + subkeys[2 * i]) % mod
-            B = (self.left_shift((A ^ B), A, w) + subkeys[2 * i + 1]) % mod
+            A_part = (self.left_shift((A_part ^ B_part), B_part, w) + subkeys[2 * i]) % mod
+            B_part = (self.left_shift((A_part ^ B_part), A_part, w) + subkeys[2 * i + 1]) % mod
 
-        res = A.to_bytes(byted // 2, byteorder='little') + B.to_bytes(byted // 2, byteorder='little')
+        res = A_part.to_bytes(byted // 2, byteorder='little') + B_part.to_bytes(byted // 2, byteorder='little')
         return res
 
     def decrypt_block(self, w, block, subkeys, rounds):
         byted = w // 4
         mod = 2 ** w
 
-        A = int.from_bytes(block[:byted // 2], byteorder='little')
-        B = int.from_bytes(block[byted // 2:], byteorder='little')
+        A_part = int.from_bytes(block[:byted // 2], byteorder='little')
+        B_part = int.from_bytes(block[byted // 2:], byteorder='little')
 
         for i in range(rounds, 0, -1):
-            B = self.right_shift(B - subkeys[2 * i + 1], A, w) ^ A
-            A = self.right_shift((A - subkeys[2 * i]), B, w) ^ B
+            B_part = self.right_shift(B_part - subkeys[2 * i + 1], A_part, w) ^ A_part
+            A_part = self.right_shift((B_part - subkeys[2 * i]), B_part, w) ^ B_part
 
-        B = (B - subkeys[1]) % mod
-        A = (A - subkeys[0]) % mod
+        A_part = (B_part - subkeys[1]) % mod
+        A_part = (A_part - subkeys[0]) % mod
 
-        res = A.to_bytes(byted // 2, byteorder='little') + B.to_bytes(byted // 2, byteorder='little')
+        res = A_part.to_bytes(byted // 2, byteorder='little') + B_part.to_bytes(byted // 2, byteorder='little')
         return res
 
     def encrypt_file(self,w, key, rounds, enc, out):
@@ -83,9 +86,11 @@ class RC5:
 
         subkeys = self.rc5_subkeys(key, w, rounds)
 
-        iv = self.IV(w)
-        iv_enc = self.encrypt_block(w, iv, subkeys, rounds)
-        out.write(iv_enc)
+        itterator = self.IV(w)
+        
+        encypted = self.encrypt_block(w, itterator, subkeys, rounds)
+        
+        out.write(encypted)
         block = enc.read(byted)
 
         while block:
@@ -93,26 +98,27 @@ class RC5:
             if not next:
                 block = self.padding(w, block)
 
-            block = bytes(map(operator.xor, block, iv))
+            block = bytes(map(operator.xor, block, itterator))
 
             encrypted_chunk = self.encrypt_block(w, block, subkeys, rounds)
 
-            iv = encrypted_chunk
+            itterator = encrypted_chunk
             block = next
 
             out.write(encrypted_chunk)
+
     def rc5_subkeys(self, w, key, rounds, dec, out):
         byted = w // 4
         subkeys = self.rc5_subkeys(key, w, rounds)
 
-        iv_dec = self.decrypt_block(w, dec.read(byted), subkeys, rounds)
+        dec = self.decrypt_block(w, dec.read(byted), subkeys, rounds)
         block = dec.read(byted)
 
         while block:
             next_block = dec.read(byted)
             decrypted_chunk = self.decrypt_block(w, block, subkeys, rounds)
-            decrypted = bytes(map(operator.xor, decrypted_chunk, iv_dec))
-            iv_dec = block
+            decrypted = bytes(map(operator.xor, decrypted_chunk, dec))
+            dec = block
             block = next_block
             if not block:
                 decrypted = self.de_padding(decrypted)
@@ -139,11 +145,11 @@ class RC5:
             S.append((S[i - 1] + Q) % 2 ** w)
 
         m = max(len(L), t)
-        A = B = i = j = 0
+        A_part = B_part = i = j = 0
 
         for k in range(3 * m):
-            A = S[i] = self.left_shift(S[i] + A + B, 3, w)
-            B = L[j] = self.left_shift(L[j] + A + B, A + B, w)
+            A_part = S[i] = self.left_shift(S[i] + A_part + B_part, 3, w)
+            B_part = L[j] = self.left_shift(L[j] + A_part + B_part, A_part + B_part, w)
 
             i = (i + 1) % t
             j = (j + 1) % len(L)
@@ -154,14 +160,14 @@ class RC5:
         byted = w // 4
         subkeys = self.rc5_subkeys(key, w, rounds)
 
-        iv_dec = self.decrypt_block(w, dec.read(byted), subkeys, rounds)
+        dec = self.decrypt_block(w, dec.read(byted), subkeys, rounds)
         block = dec.read(byted)
 
         while block:
             next_block = dec.read(byted)
             decrypted_chunk = self.decrypt_block(w, block, subkeys, rounds)
-            decrypted = bytes(map(operator.xor, decrypted_chunk, iv_dec))
-            iv_dec = block
+            decrypted = bytes(map(operator.xor, decrypted_chunk, dec))
+            dec = block
             block = next_block
             if not block:
                 decrypted = self.de_padding(decrypted)
