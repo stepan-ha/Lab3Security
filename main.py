@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 from Randomizer import  Randomizer
-from MyMD5 import  MyMD5
+from MyMD5 import MyMD5
 from  RC5 import RC5
 
 mmd = MyMD5()
