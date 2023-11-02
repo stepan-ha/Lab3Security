@@ -1,7 +1,6 @@
 import operator
 from Randomizer import Randomizer
 
-
 rnd = Randomizer()
 
 class RC5:
@@ -51,8 +50,7 @@ class RC5:
         B_part = (B_part - subkeys[1]) % modulus
         A_part = (A_part - subkeys[0]) % modulus
 
-        result_bytes = A_part.to_bytes(byte_length // 2, byteorder='little') + B_part.to_bytes(byte_length // 2,
-                                                                                               byteorder='little')
+        result_bytes = A_part.to_bytes(byte_length // 2, byteorder='little') + B_part.to_bytes(byte_length // 2, byteorder='little')
 
         return result_bytes
 
